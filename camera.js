@@ -1,11 +1,13 @@
-var requester=$CS.getValue("REQUESTER");
-var subject=$CS.getValue("SUBJECT");
-var selectedCamera=$CS.getText("GUDF_CHAR1");
-var input_data = getInputData(requester,subject);
+$CS.stopFormSubmission();
+var selectedCamera = $CS.getText("GUDF_CHAR1");//دوربین انتخابی کاربر
+var categoryID = 63;// آی دی موضوع مورد نظر
+var input_data = getInputData();
+
 ajaxcall();
-function getInputData(requester,subject,selectedCamera)
+
+function getInputData()
 {
-    var temp_data = "{\"list_info\": {\"row_count\": 100,\"start_index\": 1, \"get_total_count\": true,\"search_criteria\":{\"field\": \"status.name\", \"condition\": \"is\", \"logical_operator\": \"OR\",\"values\": [\"Open\",\"Assigned\",\"In Progress\"]},\"search_fields\": {\"template.id\":63,\"subject\": " + subject + ",\"udf_fields.udf_pick_56\":" + $CS.getText("GUDF_CHAR1") +"},  \"filter_by\":{\"name\": \"Open_System\" }}}";
+    var temp_data = "{\"list_info\": {\"row_count\": 100,\"start_index\": 1, \"get_total_count\": true,\"sort_field\":\"id\",\"sort_order\" : \"asc\",\"search_criteria\":[{\"field\": \"template.id\", \"condition\": \"is\", \"value\":"+categoryID+", \"children\":[{\"field\": \"status.id\", \"condition\": \"is\", \"values\":[2, 5, 6], \"logical_operator\": \"OR\"}]},{\"field\": \"udf_fields.udf_pick_56\", \"condition\": \"is\", \"logical_operator\": \"and\", \"value\":" + selectedCamera +"}]}}";
     return temp_data;
 }
 function ajaxcall()
@@ -14,7 +16,7 @@ function ajaxcall()
         url: '/api/v3/requests',
         type: 'GET',
         dataType: 'json',
-        headers: {'Accept': 'application/application/vnd.manageengine.v3+json'}, //NO I18N
+        headers: {'Accept': 'application/application/vnd.manageengine.v3+json'},
         data:{'format' : 'json','input_data':input_data},
         success: function(response){
             handleResponse(response);
@@ -25,10 +27,17 @@ function ajaxcall()
 
 function handleResponse(response)
 {
-    var count=response.list_info.total_count;
-    if(count>0)
+    var totalCount = response.list_info.total_count;
+    if(totalCount > 0)
     {
+        var request_list = response.requests;
+        var workersID = [];
+        for(var i=0;i<totalCount;i++)
+        {
+            workersID.push(request_list[i].id);
+        }
+        var  workersIDJoin = workersID.join(" و ");
         $CS.stopFormSubmission();
-        showalert('failure',"در حال حاضر یک درخواست باز روی این دستگاه وجود داردو نیازی به ثبت درخواست دیگری نیست.\nباتشکر",'isAutoHide=false');
+        showalert('failure',"در حال حاضر یک درخواست باز  با شماره "+ workersIDJoin +" روی این دوربین وجود دارد و نیازی به ثبت درخواست مجدد نیست.\nباتشکر",'isAutoHide=false');
     }
 } 
